@@ -2,6 +2,9 @@ module istio.io/istio
 
 go 1.14
 
+//replace istio.io/api => /home/luksa/projects/go/src/istio.io/api
+replace istio.io/api => github.com/luksa/istio-api v0.0.0-20200804114638-c6506557a46a
+
 replace github.com/golang/glog => github.com/istio/glog v0.0.0-20190424172949-d7cfb6fa2ccd
 
 replace k8s.io/klog => github.com/istio/klog v0.0.0-20190424230111-fb7481ea8bcf
@@ -170,6 +173,7 @@ require (
 	k8s.io/apimachinery v0.18.3
 	k8s.io/cli-runtime v0.18.3
 	k8s.io/client-go v0.18.3
+	k8s.io/cri-api v0.18.6
 	k8s.io/kubectl v0.18.3
 	k8s.io/utils v0.0.0-20200324210504-a9aa75ae1b89
 	sigs.k8s.io/controller-runtime v0.6.0

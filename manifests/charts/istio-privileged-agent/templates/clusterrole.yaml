@@ -1,0 +1,8 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: istio-privileged-agent
+  labels:
+    app: istio-privileged-agent
+    release: {{ .Release.Name }}
+rules:

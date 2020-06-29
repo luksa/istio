@@ -1,0 +1,77 @@
+# This manifest installs the Istio node-agent container on
+# each node in a Kubernetes cluster.
+kind: DaemonSet
+apiVersion: apps/v1
+metadata:
+  name: istio-privileged-agent
+  namespace: {{ .Release.Namespace }}
+  labels:
+    k8s-app: istio-privileged-agent
+    release: {{ .Release.Name }}
+spec:
+  selector:
+    matchLabels:
+      k8s-app: istio-privileged-agent
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        k8s-app: istio-privileged-agent
+      annotations:
+        # This, along with the CriticalAddonsOnly toleration below,
+        # marks the pod as a critical add-on, ensuring it gets
+        # priority scheduling and that its resources are reserved
+        # if it ever gets evicted.
+        scheduler.alpha.kubernetes.io/critical-pod: ''
+        sidecar.istio.io/inject: "false"
+        {{- if .Values.privilegedAgent.podAnnotations }}
+{{ toYaml .Values.privilegedAgent.podAnnotations | indent 8 }}
+        {{- end }}
+    spec:
+      hostPID: true
+      hostNetwork: true
+      nodeSelector:
+        kubernetes.io/os: linux
+      tolerations:
+        # Make sure tHE POD gets scheduled on all nodes.
+        - effect: NoSchedule
+          operator: Exists
+        # Mark the pod as a critical add-on for rescheduling.
+        - key: CriticalAddonsOnly
+          operator: Exists
+        - effect: NoExecute
+          operator: Exists
+      priorityClassName: system-cluster-critical
+      serviceAccountName: istio-privileged-agent
+      # Minimize downtime during a rolling upgrade or deletion; tell Kubernetes to do a "force
+      # deletion": https://kubernetes.io/docs/concepts/workloads/pods/pod/#termination-of-pods.
+      terminationGracePeriodSeconds: 5
+      containers:
+        - name: privileged-agent
+{{- if contains "/" .Values.privilegedAgent.image }}
+          image: "{{ .Values.privilegedAgent.image }}"
+{{- else }}
+          image: "{{ .Values.privilegedAgent.hub | default .Values.global.hub }}/{{ .Values.privilegedAgent.image | default "privileged-agent" }}:{{ .Values.privilegedAgent.tag | default .Values.global.tag }}"
+{{- end }}
+{{- if or .Values.privilegedAgent.pullPolicy .Values.global.imagePullPolicy }}
+          imagePullPolicy: {{ .Values.privilegedAgent.pullPolicy | default .Values.global.imagePullPolicy }}
+{{- end }}
+          args:
+          - node-agent
+          - --cri-socket-path
+          - /var/run/containerd/containerd.sock
+          securityContext:
+            capabilities:
+              add:
+              - SYS_ADMIN
+              - NET_ADMIN
+          volumeMounts:
+            - name: cri-sock
+              mountPath: /var/run/containerd/containerd.sock
+      volumes:
+        - name: cri-sock
+          hostPath:
+            path: /var/run/containerd/containerd.sock

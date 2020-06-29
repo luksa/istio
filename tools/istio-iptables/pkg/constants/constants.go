@@ -87,6 +87,7 @@ const (
 	RunValidation             = "run-validation"
 	IptablesProbePort         = "iptables-probe-port"
 	ProbeTimeout              = "probe-timeout"
+	AgentURL                  = "agent-url"
 )
 
 const (

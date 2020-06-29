@@ -117,6 +117,20 @@ spec:
           - name: "REPAIR_BROKEN-POD-LABEL-VALUE"
             value: "{{.Values.cni.repair.brokenPodLabelValue}}"
 {{- end }}
+        - name: node-agent
+          image: "docker.io/luksa/proxyv2:latest"
+          imagePullPolicy: Always
+          args:
+          - node-agent
+          - --cri-socket-path
+          - /var/run/containerd/containerd.sock
+          securityContext:
+            capabilities:
+              add:
+              - NET_ADMIN
+          volumeMounts:
+          - name: cri-sock
+            mountPath: /var/run/containerd/containerd.sock
       volumes:
         # Used to install CNI.
         - name: cni-bin-dir
@@ -125,3 +139,7 @@ spec:
         - name: cni-net-dir
           hostPath:
             path: {{ default "/etc/cni/net.d" .Values.cni.cniConfDir }}
+        # Used by node-agent
+        - name: cri-sock
+          hostPath:
+            path: /var/run/containerd/containerd.sock

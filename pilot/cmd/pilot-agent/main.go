@@ -31,6 +31,7 @@ import (
 	"istio.io/istio/pkg/security"
 
 	"istio.io/istio/pkg/dns"
+	nodeagent "istio.io/istio/pkg/node-agent"
 
 	meshconfig "istio.io/api/mesh/v1alpha1"
 	"istio.io/pkg/collateral"
@@ -500,6 +501,7 @@ func init() {
 	rootCmd.AddCommand(version.CobraCommand())
 	rootCmd.AddCommand(iptables.GetCommand())
 	rootCmd.AddCommand(cleaniptables.GetCommand())
+	rootCmd.AddCommand(nodeagent.GetCommand())
 
 	rootCmd.AddCommand(collateral.CobraCommand(rootCmd, &doc.GenManHeader{
 		Title:   "Istio Pilot Agent",

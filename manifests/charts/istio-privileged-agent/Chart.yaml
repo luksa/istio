@@ -1,0 +1,10 @@
+apiVersion: v1
+name: istio-privileged-agent
+version: 1.1.0
+description: Helm chart for istio-privileged-agent components
+keywords:
+  - istio-privileged-agent
+  - istio
+sources:
+engine: gotpl
+icon: https://istio.io/latest/favicons/android-192x192.png

@@ -47,6 +47,7 @@ type Config struct {
 	SkipRuleApply           bool          `json:"SKIP_RULE_APPLY"`
 	RunValidation           bool          `json:"RUN_VALIDATION"`
 	EnableInboundIPv6       bool          `json:"ENABLE_INBOUND_IPV6"`
+	AgentURL                string        `json:"AGENT_URL"`
 }
 
 func (c *Config) String() string {
@@ -76,5 +77,6 @@ func (c *Config) Print() {
 	fmt.Printf("OUTBOUND_PORTS_EXCLUDE=%s\n", c.OutboundPortsExclude)
 	fmt.Printf("KUBEVIRT_INTERFACES=%s\n", c.KubevirtInterfaces)
 	fmt.Printf("ENABLE_INBOUND_IPV6=%t\n", c.EnableInboundIPv6)
+	fmt.Printf("AGENT_URL=%s\n", c.AgentURL)
 	fmt.Println("")
 }

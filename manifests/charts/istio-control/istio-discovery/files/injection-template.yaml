@@ -46,17 +46,37 @@ template: |
     - "-k"
     - "{{ index .ObjectMeta.Annotations `traffic.sidecar.istio.io/kubevirtInterfaces` }}"
     {{ end -}}
-    {{ if .Values.istio_cni.enabled -}}
+    {{ if .Values.privilegedAgent.enabled -}}
+    - "--agent-url"
+    - "http://$(NODE_IP):1979"
+    {{ end -}}
+    {{ if or .Values.istio_cni.enabled .Values.privilegedAgent.enabled -}}
     - "--run-validation"
+    {{ end -}}
+    {{ if .Values.istio_cni.enabled -}}
     - "--skip-rule-apply"
     {{ end -}}
     imagePullPolicy: "{{ valueOrDefault .Values.global.imagePullPolicy `Always` }}"
-  {{- if .ProxyConfig.ProxyMetadata }}
+  {{- if or .ProxyConfig.ProxyMetadata .Values.privilegedAgent.enabled }}
     env:
     {{- range $key, $value := .ProxyConfig.ProxyMetadata }}
     - name: {{ $key }}
       value: "{{ $value }}"
     {{- end }}
+    {{ if .Values.privilegedAgent.enabled -}}
+    - name: NODE_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.hostIP
+    - name: POD_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.name
+    - name: POD_NAMESPACE
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.namespace
+    {{ end -}}
   {{- end }}
   {{- if .Values.global.proxy_init.resources }}
     resources:
@@ -68,14 +88,14 @@ template: |
       allowPrivilegeEscalation: {{ .Values.global.proxy.privileged }}
       privileged: {{ .Values.global.proxy.privileged }}
       capabilities:
-    {{- if not .Values.istio_cni.enabled }}
+    {{- if and (not .Values.istio_cni.enabled) (not .Values.privilegedAgent.enabled) }}
         add:
         - NET_ADMIN
         - NET_RAW
     {{- end }}
         drop:
         - ALL
-    {{- if not .Values.istio_cni.enabled }}
+    {{- if and (not .Values.istio_cni.enabled) (not .Values.privilegedAgent.enabled) }}
       readOnlyRootFilesystem: false
       runAsGroup: 0
       runAsNonRoot: false

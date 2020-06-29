@@ -15,13 +15,18 @@ package cmd
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
 
+	"istio.io/istio/pkg/node-agent/api"
 	"istio.io/istio/tools/istio-iptables/pkg/builder"
 	"istio.io/istio/tools/istio-iptables/pkg/config"
 	"istio.io/istio/tools/istio-iptables/pkg/constants"
@@ -30,7 +35,7 @@ import (
 
 type IptablesConfigurator struct {
 	iptables *builder.IptablesBuilderImpl
-	//TODO(abhide): Fix dep.Dependencies with better interface
+	// TODO(abhide): Fix dep.Dependencies with better interface
 	ext dep.Dependencies
 	cfg *config.Config
 }
@@ -329,13 +334,15 @@ func (iptConfigurator *IptablesConfigurator) handleInboundIpv4Rules(ipv4RangesIn
 }
 
 func (iptConfigurator *IptablesConfigurator) run() {
-	defer func() {
-		// Best effort since we don't know if the commands exist
-		_ = iptConfigurator.ext.Run(constants.IPTABLESSAVE)
-		if iptConfigurator.cfg.EnableInboundIPv6 {
-			_ = iptConfigurator.ext.Run(constants.IP6TABLESSAVE)
-		}
-	}()
+	if iptConfigurator.cfg.AgentURL == "" {
+		defer func() {
+			// Best effort since we don't know if the commands exist
+			_ = iptConfigurator.ext.Run(constants.IPTABLESSAVE)
+			if iptConfigurator.cfg.EnableInboundIPv6 {
+				_ = iptConfigurator.ext.Run(constants.IP6TABLESSAVE)
+			}
+		}()
+	}
 
 	//
 	// Since OUTBOUND_IP_RANGES_EXCLUDE could carry ipv4 and ipv6 ranges
@@ -369,6 +376,22 @@ func (iptConfigurator *IptablesConfigurator) run() {
 		//TODO: (abhide): Move this out of this method
 		iptConfigurator.ext.RunOrFail(constants.IP, "-6", "addr", "add", "::6/128", "dev", "lo")
 	}
+
+	// For some reason, conntrack doesn't work. As soon as the iptables rules are in place, the existing connection
+	// between the istio-init container and the privileged agent breaks, as the packets sent from the privileged
+	// delegate can no longer reach the istio-init container.
+	// The following lines are a work-around for this problem. They allow packets from the privileged agent to
+	// reach the istio-init container.
+	delegateURL, err := url.Parse(iptConfigurator.cfg.AgentURL)
+	if err != nil {
+		panic(err)
+	}
+	iptConfigurator.iptables.AppendRuleV4(constants.ISTIOINBOUND, constants.NAT, "-p", constants.TCP,
+		"-s", delegateURL.Hostname(), "--sport", delegateURL.Port(), "-j", constants.RETURN)
+
+	// this rule is not required since the istio-init container runs as UID 1337, whose packets bypass the proxy
+	// iptConfigurator.iptables.AppendRuleV4(constants.ISTIOOUTPUT, constants.NAT, "-p", constants.TCP,
+	// 	"-d", delegateURL.Hostname(), "--dport", delegateURL.Port(), "-j", constants.RETURN)
 
 	// Create a new chain for to hit tunnel port directly. Envoy will be listening on port acting as VPN tunnel.
 	iptConfigurator.iptables.AppendRuleV4(constants.ISTIOINBOUND, constants.NAT, "-p", constants.TCP, "--dport",
@@ -534,15 +557,14 @@ func (iptConfigurator *IptablesConfigurator) executeIptablesRestoreCommand(isIpv
 }
 
 func (iptConfigurator *IptablesConfigurator) executeCommands() {
-	if iptConfigurator.cfg.RestoreFormat {
-		// Execute iptables-restore
-		err := iptConfigurator.executeIptablesRestoreCommand(true)
+	if iptConfigurator.cfg.AgentURL != "" {
+		err := iptConfigurator.executeIptablesRestoreCommandsViaDelegate()
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		// Execute ip6tables-restore
-		err = iptConfigurator.executeIptablesRestoreCommand(false)
+	} else if iptConfigurator.cfg.RestoreFormat {
+		err := iptConfigurator.executeIptablesRestoreCommands()
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -552,6 +574,81 @@ func (iptConfigurator *IptablesConfigurator) executeCommands() {
 		iptConfigurator.executeIptablesCommands(iptConfigurator.iptables.BuildV4())
 		// Execute ip6tables commands
 		iptConfigurator.executeIptablesCommands(iptConfigurator.iptables.BuildV6())
-
 	}
+}
+
+func (iptConfigurator *IptablesConfigurator) executeIptablesRestoreCommands() error {
+	// Execute iptables-restore
+	err := iptConfigurator.executeIptablesRestoreCommand(true)
+	if err != nil {
+		return err
+	}
+	// Execute ip6tables-restore
+	err = iptConfigurator.executeIptablesRestoreCommand(false)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (iptConfigurator *IptablesConfigurator) executeIptablesRestoreCommandsViaDelegate() error {
+
+	request := api.IPTablesRequest{
+		PodNamespace: os.Getenv("POD_NAMESPACE"),
+		PodName:      os.Getenv("POD_NAME"),
+		IPV4Options: api.IPTablesOptions{
+			Rules: iptConfigurator.iptables.BuildV4Restore(),
+		},
+		IPV6Options: api.IPTablesOptions{
+			Rules: iptConfigurator.iptables.BuildV6Restore(),
+		},
+	}
+
+	body, err := json.Marshal(request)
+	if err != nil {
+		return err
+	}
+
+	iptablesURL := fmt.Sprintf("%s/iptables", iptConfigurator.cfg.AgentURL)
+
+	fmt.Printf("Configuring iptables via agent at %s", iptablesURL)
+	fmt.Println()
+
+	req, err := http.NewRequest(http.MethodPost, iptablesURL, bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+
+	response, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Received response from agent: %s", response.Status)
+	fmt.Println()
+
+	if response.StatusCode != http.StatusOK {
+		return fmt.Errorf("Error from agent: %d %v", response.StatusCode, response.Status)
+	}
+
+	decoder := json.NewDecoder(response.Body)
+	resp := api.IPTablesResponse{}
+	err = decoder.Decode(&resp)
+	if err != nil {
+		return fmt.Errorf("Error decoding response from agent: %v", err)
+	}
+
+	fmt.Println("iptables-restore output:")
+	fmt.Println(resp.IPV4Result.RestoreCommandOutput)
+	fmt.Println("iptables-save output:")
+	fmt.Println(resp.IPV4Result.SaveCommandOutput)
+	fmt.Println()
+	fmt.Println("ip6tables-restore output:")
+	fmt.Println(resp.IPV6Result.RestoreCommandOutput)
+	fmt.Println("ip6tables-save output:")
+	fmt.Println(resp.IPV6Result.SaveCommandOutput)
+	fmt.Println()
+	fmt.Printf("Finished configuration of iptables")
+	fmt.Println()
+	return nil
 }

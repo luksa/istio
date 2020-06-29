@@ -160,6 +160,13 @@ func NewTranslator() *Translator {
 				HelmSubdir:           "istio-cni",
 				ToHelmValuesTreeRoot: "cni",
 			},
+			name.PrivilegedAgentComponentName: {
+				ResourceType:         "DaemonSet",
+				ResourceName:         "istio-privileged-agent",
+				ContainerName:        "privileged-agent",
+				HelmSubdir:           "istio-privileged-agent",
+				ToHelmValuesTreeRoot: "privilegedAgent",
+			},
 			name.IstiodRemoteComponentName: {
 				HelmSubdir:           "istiod-remote",
 				ToHelmValuesTreeRoot: "global",

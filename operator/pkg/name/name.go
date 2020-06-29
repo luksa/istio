@@ -98,7 +98,8 @@ const (
 	PolicyComponentName    ComponentName = "Policy"
 	TelemetryComponentName ComponentName = "Telemetry"
 
-	CNIComponentName ComponentName = "Cni"
+	CNIComponentName             ComponentName = "Cni"
+	PrivilegedAgentComponentName ComponentName = "PrivilegedAgent"
 
 	// istiod remote component
 	IstiodRemoteComponentName ComponentName = "IstiodRemote"
@@ -127,6 +128,7 @@ var (
 		PolicyComponentName,
 		TelemetryComponentName,
 		CNIComponentName,
+		PrivilegedAgentComponentName,
 		IstiodRemoteComponentName,
 	}
 
@@ -155,6 +157,7 @@ var (
 		PolicyComponentName:             "Policy",
 		TelemetryComponentName:          "Telemetry",
 		CNIComponentName:                "CNI",
+		PrivilegedAgentComponentName:    "Privileged agent",
 		IngressComponentName:            "Ingress gateways",
 		EgressComponentName:             "Egress gateways",
 		AddonComponentName:              "Addons",

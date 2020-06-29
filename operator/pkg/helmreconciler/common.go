@@ -67,6 +67,7 @@ var (
 			name.PolicyComponentName,
 			name.TelemetryComponentName,
 			name.CNIComponentName,
+			name.PrivilegedAgentComponentName,
 			name.IngressComponentName,
 			name.EgressComponentName,
 			name.AddonComponentName,

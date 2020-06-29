@@ -115,6 +115,12 @@ func TestNewIstioOperator(t *testing.T) {
 							Options:       coreComponentOptions,
 						},
 					},
+					&component.PrivilegedAgentComponent{
+						CommonComponentFields: &component.CommonComponentFields{
+							ComponentName: name.PrivilegedAgentComponentName,
+							Options:       coreComponentOptions,
+						},
+					},
 					&component.IstiodRemoteComponent{
 						CommonComponentFields: &component.CommonComponentFields{
 							ComponentName: name.IstiodRemoteComponentName,

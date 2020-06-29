@@ -105,6 +105,8 @@ func NewCoreComponent(cn name.ComponentName, opts *Options) IstioComponent {
 		component = NewTelemetryComponent(opts)
 	case name.CNIComponentName:
 		component = NewCNIComponent(opts)
+	case name.PrivilegedAgentComponentName:
+		component = NewPrivilegedAgentComponent(opts)
 	case name.IstiodRemoteComponentName:
 		component = NewIstiodRemoteComponent(opts)
 	default:
@@ -340,6 +342,52 @@ func (c *CNIComponent) Namespace() string {
 
 // Enabled implements the IstioComponent interface.
 func (c *CNIComponent) Enabled() bool {
+	return isCoreComponentEnabled(c.CommonComponentFields)
+}
+
+// CNIComponent is the istio cni component.
+type PrivilegedAgentComponent struct {
+	*CommonComponentFields
+}
+
+// NewPrivilegedAgentComponent creates a new PrivilegedAgentComponent and returns a pointer to it.
+func NewPrivilegedAgentComponent(opts *Options) *PrivilegedAgentComponent {
+	cn := name.PrivilegedAgentComponentName
+	return &PrivilegedAgentComponent{
+		&CommonComponentFields{
+			Options:       opts,
+			ComponentName: cn,
+		},
+	}
+}
+
+// Run implements the IstioComponent interface.
+func (c *PrivilegedAgentComponent) Run() error {
+	return runComponent(c.CommonComponentFields)
+}
+
+// RenderManifest implements the IstioComponent interface.
+func (c *PrivilegedAgentComponent) RenderManifest() (string, error) {
+	return renderManifest(c, c.CommonComponentFields)
+}
+
+// ComponentName implements the IstioComponent interface.
+func (c *PrivilegedAgentComponent) ComponentName() name.ComponentName {
+	return c.CommonComponentFields.ComponentName
+}
+
+// ResourceName implements the IstioComponent interface.
+func (c *PrivilegedAgentComponent) ResourceName() string {
+	return c.CommonComponentFields.ResourceName
+}
+
+// Namespace implements the IstioComponent interface.
+func (c *PrivilegedAgentComponent) Namespace() string {
+	return c.CommonComponentFields.Namespace
+}
+
+// Enabled implements the IstioComponent interface.
+func (c *PrivilegedAgentComponent) Enabled() bool {
 	return isCoreComponentEnabled(c.CommonComponentFields)
 }
 
