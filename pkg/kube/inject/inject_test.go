@@ -356,9 +356,9 @@ func TestInjection(t *testing.T) {
 				wantYAMLs := splitYamlFile(wantFilePath, t)
 				for i := 0; i < len(inputYAMLs); i++ {
 					t.Run(fmt.Sprintf("yamlPart[%d]", i), func(t *testing.T) {
-						runWebhook(t, webhook, inputYAMLs[i], wantYAMLs[i])
+						runWebhook(t, webhook, inputYAMLs[i], wantYAMLs[i], false)
 						t.Run("idempotency", func(t *testing.T) {
-							runWebhook(t, webhook, wantYAMLs[i], wantYAMLs[i])
+							runWebhook(t, webhook, wantYAMLs[i], wantYAMLs[i], true)
 						})
 					})
 				}
@@ -435,10 +435,10 @@ spec:
     fsGroup: 1337
 `
 	// We expect resources to only have limits, since we had the "replace" directive.
-	runWebhook(t, webhook, []byte(pod), []byte(expectedPod))
+	runWebhook(t, webhook, []byte(pod), []byte(expectedPod), false)
 }
 
-func runWebhook(t *testing.T, webhook *Webhook, inputYAML []byte, wantYAML []byte) {
+func runWebhook(t *testing.T, webhook *Webhook, inputYAML []byte, wantYAML []byte, ignoreIstioMetaJsonAnnotationsEnv bool) {
 	// Convert the input YAML to a deployment.
 	inputRaw, err := FromRawToObject(inputYAML)
 	if err != nil {
@@ -479,8 +479,7 @@ func runWebhook(t *testing.T, webhook *Webhook, inputYAML []byte, wantYAML []byt
 		gotPod = inputPod
 	}
 
-	// normalize and compare the patched deployment with the one we expected.
-	if err := normalizeAndCompareDeployments(gotPod, wantPod, t); err != nil {
+	if err := normalizeAndCompareDeployments(gotPod, wantPod, ignoreIstioMetaJsonAnnotationsEnv, t); err != nil {
 		t.Fatal(err)
 	}
 }
