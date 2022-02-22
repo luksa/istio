@@ -398,12 +398,13 @@ func buildOutOfMeshServerQuery(sourceCluster string) string {
 		// to fill in workload labels. To limit size of endpoint resource, we only populate
 		// workload name and namespace, canonical service name and version in endpoint metadata.
 		// Thus destination_app and destination_version labels are unknown.
-		"destination_app":                "unknown",
-		"destination_version":            "unknown",
-		"destination_service":            "server-no-sidecar." + ns.Name() + ".svc.cluster.local",
-		"destination_service_name":       "server-no-sidecar",
-		"destination_workload_namespace": ns.Name(),
-		"destination_service_namespace":  ns.Name(),
+		"destination_app":          "unknown",
+		"destination_version":      "unknown",
+		"destination_service":      "server-no-sidecar." + ns.Name() + ".svc.cluster.local",
+		"destination_service_name": "server-no-sidecar",
+		// TODO: why are these unknown too?
+		"destination_workload_namespace": "unknown",
+		"destination_service_namespace":  "unknown",
 		"source_app":                     "client",
 		"source_version":                 "v1",
 		"source_workload":                "client-v1",
