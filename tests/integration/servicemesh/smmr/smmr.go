@@ -35,7 +35,7 @@ import (
 	"istio.io/istio/pkg/test/util/retry"
 )
 
-const gatewayRouteName = "http.80"
+const gatewayRouteName = "http.8080"
 
 func configureMemberRollNameInIstiod(ctx framework.TestContext, c cluster.Cluster) {
 	scopes.Framework.Info("Patching istiod deployment...")
