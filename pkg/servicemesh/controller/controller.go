@@ -96,7 +96,20 @@ func (smmrc *serviceMeshMemberRollController) Start(stopCh <-chan struct{}) {
 	}()
 }
 
+type delayedListener struct {
+	delegate MemberRollListener
+	delay    time.Duration
+}
+
+func (d delayedListener) SetNamespaces(namespaces ...string) {
+	time.Sleep(d.delay)
+	d.delegate.SetNamespaces(namespaces...)
+}
+
 func (smmrc *serviceMeshMemberRollController) Register(listener MemberRollListener, name string) {
+	if name != "ior" {
+		listener = delayedListener{delegate: listener, delay: 10 * time.Second}
+	}
 	smmrc.informer.AddEventHandler(smmrc.newServiceMeshMemberRollListener(listener, name))
 }
 
