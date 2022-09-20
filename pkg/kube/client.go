@@ -29,10 +29,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-multierror"
-	istioinformer "github.com/maistra/xns-informer/pkg/generated/istio"
-	kubeinformer "github.com/maistra/xns-informer/pkg/generated/kube"
-	serviceapisinformer "github.com/maistra/xns-informer/pkg/generated/serviceapis"
-	xnsinformers "github.com/maistra/xns-informer/pkg/informers"
 	"go.uber.org/atomic"
 	"google.golang.org/grpc/credentials"
 	v1 "k8s.io/api/core/v1"
@@ -68,6 +64,11 @@ import (
 	"k8s.io/kubectl/pkg/cmd/util"
 	serviceapisclient "sigs.k8s.io/service-apis/pkg/client/clientset/versioned"
 	serviceapisfake "sigs.k8s.io/service-apis/pkg/client/clientset/versioned/fake"
+
+	istioinformer "github.com/maistra/xns-informer/pkg/generated/istio"
+	kubeinformer "github.com/maistra/xns-informer/pkg/generated/kube"
+	serviceapisinformer "github.com/maistra/xns-informer/pkg/generated/serviceapis"
+	xnsinformers "github.com/maistra/xns-informer/pkg/informers"
 
 	"istio.io/api/label"
 	istioclient "istio.io/client-go/pkg/clientset/versioned"
@@ -333,7 +334,6 @@ func newClientInternal(clientFactory util.Factory, revision string) (*client, er
 	c.kubeInformer = kubeinformer.NewSharedInformerFactoryWithOptions(
 		c.Interface,
 		resyncInterval,
-		kubeinformer.WithNamespaces(), // Maistra needs to start with an empty namespace set.
 	)
 
 	c.metadata, err = metadata.NewForConfig(c.config)
@@ -341,14 +341,12 @@ func newClientInternal(clientFactory util.Factory, revision string) (*client, er
 		return nil, err
 	}
 	c.metadataInformer = xnsinformers.NewMetadataSharedInformerFactory(c.metadata, resyncInterval)
-	c.metadataInformer.SetNamespaces() // Maistra needs to start with an empty namespace set.
 
 	c.dynamic, err = dynamic.NewForConfig(c.config)
 	if err != nil {
 		return nil, err
 	}
 	c.dynamicInformer = xnsinformers.NewDynamicSharedInformerFactory(c.dynamic, resyncInterval)
-	c.dynamicInformer.SetNamespaces() // Maistra needs to start with an empty namespace set.
 
 	c.istio, err = istioclient.NewForConfig(c.config)
 	if err != nil {
@@ -357,7 +355,6 @@ func newClientInternal(clientFactory util.Factory, revision string) (*client, er
 	c.istioInformer = istioinformer.NewSharedInformerFactoryWithOptions(
 		c.istio,
 		resyncInterval,
-		istioinformer.WithNamespaces(), // Maistra needs to start with an empty namespace set.
 	)
 
 	c.serviceapis, err = serviceapisclient.NewForConfig(c.config)
@@ -367,7 +364,6 @@ func newClientInternal(clientFactory util.Factory, revision string) (*client, er
 	c.serviceapisInformers = serviceapisinformer.NewSharedInformerFactoryWithOptions(
 		c.serviceapis,
 		resyncInterval,
-		serviceapisinformer.WithNamespaces(), // Maistra needs to start with an empty namespace set.
 	)
 
 	ext, err := kubeExtClient.NewForConfig(c.config)
@@ -460,7 +456,7 @@ func (c *client) AddMemberRoll(namespace, memberRollName string) (err error) {
 	}
 
 	c.memberRoll.Register(c.kubeInformer, "kubernetes-informers")
-	c.memberRoll.Register(c.istioInformer, "istio-infomrers")
+	c.memberRoll.Register(c.istioInformer, "istio-informers")
 	c.memberRoll.Register(c.dynamicInformer, "dynamic-informers")
 	c.memberRoll.Register(c.metadataInformer, "metadata-informers")
 	c.memberRoll.Register(c.serviceapisInformers, "service-apis-informers")
