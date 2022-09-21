@@ -774,7 +774,7 @@ github.com/magiconair/properties
 github.com/mailru/easyjson/buffer
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
-# github.com/maistra/xns-informer v0.0.0-20220301142458-d7b9519d1378
+# github.com/maistra/xns-informer v0.0.0-20220920101259-8467c347491a => github.com/luksa/xns-informer v0.0.0-20221007103507-5488f0815e0f
 ## explicit
 github.com/maistra/xns-informer/pkg/generated/gatewayapi
 github.com/maistra/xns-informer/pkg/generated/gatewayapi/apis
@@ -2006,7 +2006,7 @@ k8s.io/utils/internal/third_party/forked/golang/net
 k8s.io/utils/net
 k8s.io/utils/pointer
 k8s.io/utils/trace
-# maistra.io/api v0.0.0-20220919111554-945b07b83f61
+# maistra.io/api v0.0.0-20220919111554-945b07b83f61 => github.com/luksa/api v0.0.0-20221007104558-0a4f4cea28bb
 ## explicit
 maistra.io/api/client/informers/externalversions
 maistra.io/api/client/informers/externalversions/core
@@ -2205,3 +2205,5 @@ sigs.k8s.io/yaml
 # github.com/docker/distribution => github.com/docker/distribution v0.0.0-20191216044856-a8371794149d
 # github.com/docker/docker => github.com/moby/moby v17.12.0-ce-rc1.0.20200618181300-9dc6525e6118+incompatible
 # github.com/imdario/mergo => github.com/imdario/mergo v0.3.5
+# maistra.io/api => github.com/luksa/api v0.0.0-20221007104558-0a4f4cea28bb
+# github.com/maistra/xns-informer => github.com/luksa/xns-informer v0.0.0-20221007103507-5488f0815e0f

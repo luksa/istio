@@ -15,6 +15,10 @@ replace github.com/docker/docker => github.com/moby/moby v17.12.0-ce-rc1.0.20200
 // Client-go does not handle different versions of mergo due to some breaking changes - use the matching version
 replace github.com/imdario/mergo => github.com/imdario/mergo v0.3.5
 
+replace maistra.io/api => github.com/luksa/api v0.0.0-20221007104558-0a4f4cea28bb
+
+replace github.com/maistra/xns-informer => github.com/luksa/xns-informer v0.0.0-20221007103507-5488f0815e0f
+
 require (
 	cloud.google.com/go v0.97.0
 	cloud.google.com/go/security v1.1.0
@@ -54,7 +58,7 @@ require (
 	github.com/kylelemons/godebug v1.1.0
 	github.com/lestrrat-go/jwx v1.2.0
 	github.com/lucas-clemente/quic-go v0.24.0
-	github.com/maistra/xns-informer v0.0.0-20220301142458-d7b9519d1378
+	github.com/maistra/xns-informer v0.0.0-20220920101259-8467c347491a
 	github.com/mattn/go-isatty v0.0.14
 	github.com/miekg/dns v1.1.43
 	github.com/mitchellh/copystructure v1.2.0
