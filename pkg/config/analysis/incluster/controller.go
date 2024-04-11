@@ -31,7 +31,9 @@ import (
 	"istio.io/istio/pkg/config/analysis/analyzers"
 	"istio.io/istio/pkg/config/analysis/diag"
 	"istio.io/istio/pkg/config/analysis/local"
+	"istio.io/istio/pkg/config/legacy/util/kuberesource"
 	"istio.io/istio/pkg/config/resource"
+	"istio.io/istio/pkg/config/schema/collection"
 	"istio.io/istio/pkg/config/schema/collections"
 	"istio.io/istio/pkg/kube"
 	"istio.io/pkg/log"
@@ -47,12 +49,21 @@ type Controller struct {
 func NewController(stop <-chan struct{}, rwConfigStore model.ConfigStoreController,
 	kubeClient kube.Client, revision, namespace string, statusManager *status.Manager, domainSuffix string, enableCRDScan bool,
 ) (*Controller, error) {
-	ia := local.NewIstiodAnalyzer(analyzers.AllCombined(), "", resource.Namespace(namespace), func(name config.GroupVersionKind) {})
+	analyzer := analyzers.AllCombined()
+	ia := local.NewIstiodAnalyzer(analyzer, "", resource.Namespace(namespace), func(name config.GroupVersionKind) {})
 	ia.AddSource(rwConfigStore)
+
+	schemas := kuberesource.ConvertInputsToSchemas(analyzer.Metadata().Inputs).
+		Remove(collections.MeshConfig).  // this is not an actual resource
+		Remove(collections.MeshNetworks) // this is not an actual resource
+	if kubeClient.IsMultiTenant() {
+		schemas = removeClusterScoped(schemas)
+	}
 	// Filter out configs watched by rwConfigStore so we don't watch multiple times
+	schemas = schemas.Remove(rwConfigStore.Schemas().All()...)
 	store, err := crdclient.NewForSchemas(kubeClient,
 		crdclient.Option{Revision: revision, DomainSuffix: domainSuffix, Identifier: "analysis-controller", EnableCRDScan: enableCRDScan},
-		collections.All.Remove(rwConfigStore.Schemas().All()...))
+		schemas)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load common types for analysis, releasing lease: %v", err)
 	}
@@ -72,6 +83,16 @@ func NewController(stop <-chan struct{}, rwConfigStore model.ConfigStoreControll
 		return status
 	})
 	return &Controller{analyzer: ia, statusctl: ctl}, nil
+}
+
+func removeClusterScoped(schemas collection.Schemas) collection.Schemas {
+	b := collection.NewSchemasBuilder()
+	for _, s := range schemas.All() {
+		if !s.IsClusterScoped() {
+			b.MustAdd(s)
+		}
+	}
+	return b.Build()
 }
 
 // Run is blocking
